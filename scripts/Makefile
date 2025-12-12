@@ -1,27 +1,35 @@
-EXEC = main
+# Paramètres
+CC = gcc
+CFLAGS = -std=gnu11 -O3 -march=native -Wall -Wextra -pipe
 
 SRC_DIR = src
-INC_DIR = includes
-BUILD_DIR = build
+BUILD_DIR = builds
 
-CXX = g++
-CXXFLAGS = -Wall -I$(INC_DIR)
+# Sources et objets
+SRC = $(SRC_DIR)/mitm.c
+OBJ = $(BUILD_DIR)/mitm.o
 
-SRCS = $(wildcard $(SRC_DIR)/*.cpp) main.cpp
-OBJS = $(SRCS:%.cpp=$(BUILD_DIR)/%.o)
+# Nom du fichier
+TARGET = mitm
 
-all: $(EXEC)
+.PHONY: all clean run
 
-$(EXEC): $(OBJS)
-	$(CXX) $(CXXFLAGS) -o $@ $^
+# Compilation complète
+all: $(TARGET)
 
-$(BUILD_DIR)/%.o: %.cpp
-	@mkdir -p $(dir $@)
-	$(CXX) $(CXXFLAGS) -c $< -o $@
+# Création de l'exécutable
+$(TARGET): $(OBJ)
+	$(CC) $(CFLAGS) -o $@ $^
 
+# Compilation d'un .c vers un .o dans builds/
+$(BUILD_DIR)/%.o: $(SRC_DIR)/%.c
+	@mkdir -p $(BUILD_DIR)
+	$(CC) $(CFLAGS) -c -o $@ $<
+
+# Nettoyage
 clean:
-	rm -rf $(BUILD_DIR) $(EXEC)
+	rm -f $(BUILD_DIR)/*.o $(TARGET)
 
-rebuild: clean all
-
-.PHONY: all clean rebuild
+# Exécution selon les paramètres sur le site : https://ppar.tme-crypto.fr/<username>/<n>
+run: $(TARGET)
+	./$(TARGET) --n 20 --C0 ab608b105290528d --C1 03abc7b389f440ed
