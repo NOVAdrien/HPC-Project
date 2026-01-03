@@ -4,8 +4,8 @@
 
 This project implements a **parallel Meet-in-the-Middle (MITM) attack** for solving the following problem:
 
-Given two functions  
-**f, g : {0,1}^n → {0,1}^n**  
+Given two functions
+**f, g : ${0,1}^n$ → {0,1}^n**
 and a predicate  
 **π : {0,1}^n × {0,1}^n → {0,1}**,  
 
