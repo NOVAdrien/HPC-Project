@@ -7,11 +7,11 @@ This project implements a **parallel Meet-in-the-Middle (MITM) attack** for solv
 We are given two functions and a predicate:
 
 $$
-f, g : {0,1}^n -> {0,1}^n
+f, g : \{0,1\}^n \rightarrow \{0,1\}^n
 $$
 
 $$
-pi : {0,1}^n x {0,1}^n -> {0,1}
+pi : \{0,1\}^n x \{0,1\}^n \rightarrow {0,1}
 $$
 
 The goal is to find a **golden collision** `(x, y)` such that:
@@ -23,7 +23,7 @@ $$
 and
 
 $$
-pi(x, y) = 1
+\pi(x, y) = 1
 $$
 
 A naive brute-force approach would require:
@@ -57,24 +57,24 @@ The objective of this project is to **push the value of `n` as high as possible*
 The classical Meet-in-the-Middle algorithm works as follows:
 
 1. Initialize a dictionary `D`
-2. For each value `x` in the space `{0,1}^n`, insert the pair:
+2. For each value `x` in the space `$\{0,1\}^n$`, insert the pair:
 
 ```
-
-f(x) -> x
-
+$$
+f(x) \rightarrow x
+$$
 ````
 
 into the dictionary `D`
 
-3. For each value `y` in the space `{0,1}^n`:
+3. For each value `y` in the space `$\{0,1\}^n$`:
 - Retrieve all values `x` such that:
 
   ```
   f(x) = g(y)
   ```
 
-- For each candidate pair `(x, y)`, test the predicate `pi(x, y)`
+- For each candidate pair `(x, y)`, test the predicate `$\pi(x, y)$`
 
 4. Return `(x, y)` when the predicate evaluates to true
 
@@ -86,7 +86,7 @@ This approach replaces a quadratic search over all `(x, y)` pairs with two linea
 
 ### MPI (Distributed Memory)
 
-- The search space `{0,1}^n` is **partitioned across MPI ranks**
+- The search space `$\{0,1\}^n$` is **partitioned across MPI ranks**
 - The dictionary is **sharded** using a modulo-based strategy:
 
 $$
@@ -136,14 +136,14 @@ g(y) = D(y, C_0)
 $$
 
 $$
-pi(x, y) = [ E(y, E(x, P_1)) = C_1 ]
+\pi(x, y) = [ E(y, E(x, P_1)) = C_1 ]
 $$
 
 Where:
 
 - `E` is the SPECK64-128 encryption function
 - `D` is the corresponding decryption function
-- `(P_0, C_0)` and `(P_1, C_1)` are plaintext–ciphertext pairs
+- `($P_0$, $C_0$)` and `($P_1$, $C_1$)` are plaintext–ciphertext pairs
 
 No cryptographic background is required to understand or use the code; the problem can be viewed purely as a **distributed data-structure and search problem**.
 
@@ -184,7 +184,7 @@ make run ARGS="--n 30 --C0 f5ab93c4313512dd --C1 33876ac77f205cd5"
 ### Parameters
 
 * `--n N`
-  Block size (the search space contains `2^n` elements)
+  Block size (the search space contains `$2^n$` elements)
 
 * `--C0`
   First ciphertext (hexadecimal)
@@ -211,11 +211,11 @@ These values can be overridden at runtime if needed.
 * The root process gathers and prints:
 
   * The total number of golden collisions found
-  * The corresponding key pairs `(K1, K2)`
+  * The corresponding key pairs `($K_1$, $K_2$)`
 * All reported solutions are validated using:
 
-  * `f(K1) = g(K2)`
-  * `pi(K1, K2) = 1`
+  * `$f(K_1) = g(K_2)$`
+  * `$\pi(K_1, K_2) = 1$`
 
 ---
 
@@ -259,7 +259,4 @@ Values of `n >= 40` are challenging and require multiple compute nodes.
 
 Course: Parallel Programming and Cryptography
 Submission deadline: **January 5th, 23:59**
-
-
-Dis-moi 👍
 ```
