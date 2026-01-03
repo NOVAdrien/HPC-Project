@@ -2,83 +2,41 @@
 
 ## Overview
 
-This project implements a **parallel Meet-in-the-Middle (MITM) attack** for solving the following problem.
+This project implements a **parallel Meet-in-the-Middle (MITM) attack** for solving the following problem:
 
-We are given two functions and a predicate:
+Given two functions
+**f, g : {0,1}^n → {0,1}^n**
+and a predicate  
+**π : {0,1}^n × {0,1}^n → {0,1}**,  
 
-$$
-f, g : \{0,1\}^n \rightarrow \{0,1\}^n
-$$
+find a *golden collision* **(x, y)** such that:
 
-$$
-pi : \{0,1\}^n x \{0,1\}^n \rightarrow {0,1}
-$$
+**f(x) = g(y)** and **π(x, y) = 1**.
 
-The goal is to find a **golden collision** `(x, y)` such that:
+A naive brute-force approach requires **2^(2n)** operations.  
+The Meet-in-the-Middle attack reduces this complexity to approximately  
+**3 · 2^n operations**, at the cost of **2ⁿ memory**, assuming that f and g
+behave like random functions.
 
-$$
-f(x) = g(y)
-$$
-
-and
-
-$$
-\pi(x, y) = 1
-$$
-
-A naive brute-force approach would require:
-
-$$
-2^{2n}
-$$
-
-operations.
-
-The Meet-in-the-Middle attack reduces this complexity to approximately:
-
-$$
-3 * 2^n
-$$
-
-operations, at the cost of:
-
-$$
-2^n
-$$
-
-words of memory, assuming that the functions behave like random functions.
-
-The objective of this project is to **push the value of `n` as high as possible**, prioritizing scalability over raw execution time, using **MPI (distributed memory)** and **OpenMP (shared memory)** parallelism.
+The objective of this project is to **push the value of n as high as possible**,
+prioritizing scalability over raw execution time, using **MPI (distributed
+memory)** and **OpenMP (shared memory)** parallelism.
 
 ---
 
 ## Algorithm
 
-The classical Meet-in-the-Middle algorithm works as follows:
+The classical Meet-in-the-Middle algorithm proceeds as follows:
 
-1. Initialize a dictionary `D`
-2. For each value `x` in the space `$\{0,1\}^n$`, insert the pair:
+1. Initialize a dictionary **D**
+2. For each **x ∈ {0,1}^n**, store the pair **f(x) -> x** in **D**
+3. For each **y ∈ {0,1}^n**:
+   - Retrieve all **x** such that **f(x) = g(y)**
+   - For each candidate **(x, y)**, test the predicate **π(x, y)**
+4. Return **(x, y)** when **π(x, y) = 1**
 
-```
-$$
-f(x) \rightarrow x
-$$
-````
-
-into the dictionary `D`
-
-3. For each value `y` in the space `$\{0,1\}^n$`:
-- Retrieve all values `x` such that:
-
-  ```
-  f(x) = g(y)
-  ```
-
-- For each candidate pair `(x, y)`, test the predicate `$\pi(x, y)$`
-
-4. Return `(x, y)` when the predicate evaluates to true
-
-This approach replaces a quadratic search over all `(x, y)` pairs with two linear passes over the search space.
+This approach replaces a quadratic search with two linear passes over the
+search space.
 
 ---
 
@@ -86,18 +44,21 @@ This approach replaces a quadratic search over all `(x, y)` pairs with two linea
 
 ### MPI (Distributed Memory)
 
-- The search space `$\{0,1\}^n$` is **partitioned across MPI ranks**
+- The search space **{0,1}^n** is **partitioned across MPI ranks**
 - The dictionary is **sharded** using a modulo-based strategy:
 
-$$
-destination\_rank = z mod p
-$$
+```
+
+destination_rank = z mod p
+
+````
 
 - Each MPI process stores only its local shard of the dictionary
-- Dictionary construction and probing rely on `MPI_Alltoallv`
-- Final results are gathered on rank 0 using `MPI_Gatherv`
+- Dictionary construction and probing rely on **MPI_Alltoallv**
+- Final results are gathered on rank 0 using **MPI_Gatherv**
 
-This avoids a centralized dictionary and allows the program to scale across multiple compute nodes.
+This avoids a centralized dictionary and allows the program to scale across
+multiple compute nodes.
 
 ---
 
@@ -117,35 +78,25 @@ To control memory usage:
 
 - The search space is processed in **fixed-size chunks**
 - Dictionary construction and probing are performed block by block
-- This ensures bounded memory usage even for large values of `n`
+- This ensures bounded memory usage even for large values of **n**
 
 ---
 
 ## Cryptographic Instance
 
-The provided instance corresponds to a **Double-SPECK64-128 construction**.
+The provided instance corresponds to a **Double-SPECK64-128 construction**:
 
-The functions are defined as:
-
-$$
-f(x) = E(x, P_0)
-$$
-
-$$
-g(y) = D(y, C_0)
-$$
-
-$$
-\pi(x, y) = [ E(y, E(x, P_1)) = C_1 ]
-$$
+- **f(x) = E(x, P_0)**
+- **g(y) = D(y, C_0)**
+- **π(x, y) = [E(y, E(x, P_1)) = C_1]**
 
 Where:
+- **SPECK64-128** is used as the block cipher
+- Two plaintext–ciphertext pairs are required to validate a solution
 
-- `E` is the SPECK64-128 encryption function
-- `D` is the corresponding decryption function
-- `($P_0$, $C_0$)` and `($P_1$, $C_1$)` are plaintext–ciphertext pairs
-
-No cryptographic background is required to understand or use the code; the problem can be viewed purely as a **distributed data-structure and search problem**.
+No cryptographic background is required to understand or use the code; the
+problem can be viewed purely as a **distributed data-structure and search
+problem**.
 
 ---
 
@@ -183,14 +134,9 @@ make run ARGS="--n 30 --C0 f5ab93c4313512dd --C1 33876ac77f205cd5"
 
 ### Parameters
 
-* `--n N`
-  Block size (the search space contains `$2^n$` elements)
-
-* `--C0`
-  First ciphertext (hexadecimal)
-
-* `--C1`
-  Second ciphertext (hexadecimal)
+* `--n N` : block size (search space size is **2^n**)
+* `--C0`  : first ciphertext (hexadecimal)
+* `--C1`  : second ciphertext (hexadecimal)
 
 All arguments are mandatory.
 
@@ -211,11 +157,11 @@ These values can be overridden at runtime if needed.
 * The root process gathers and prints:
 
   * The total number of golden collisions found
-  * The corresponding key pairs `($K_1$, $K_2$)`
+  * The corresponding key pairs **(K_1, K_2)**
 * All reported solutions are validated using:
 
-  * `$f(K_1) = g(K_2)$`
-  * `$\pi(K_1, K_2) = 1$`
+  * **f(K_1) = g(K_2)**
+  * the predicate **pi(K_1, K_2)**
 
 ---
 
@@ -224,12 +170,12 @@ These values can be overridden at runtime if needed.
 * **Main bottleneck**: memory access and dictionary probing
 * **MPI communication cost** increases with the number of processes
 * **OpenMP scaling** is limited by dictionary contention
-* Large values of `n` require:
+* Large values of **n** require:
 
   * careful tuning of chunk size
   * balanced MPI/OpenMP configuration to avoid oversubscription
 
-Values of `n >= 40` are challenging and require multiple compute nodes.
+Values of **n ≥ 40** are challenging and require multiple compute nodes.
 
 ---
 
@@ -248,7 +194,7 @@ Values of `n >= 40` are challenging and require multiple compute nodes.
 * Designed for execution on Grid’5000 / OAR clusters
 * Large computations should be run at night or on weekends
 * The sharded dictionary approach avoids global memory bottlenecks
-* The implementation strictly follows MPI initialization and finalization rules
+* The implementation strictly follows MPI initialization/finalization rules
 
 ---
 
@@ -259,4 +205,3 @@ Values of `n >= 40` are challenging and require multiple compute nodes.
 
 Course: Parallel Programming and Cryptography
 Submission deadline: **January 5th, 23:59**
-```
