@@ -28,3 +28,10 @@ make
 
 ### Exécution
 make run ARGS="--n 30 --C0 f5ab93c4313512dd --C1 33876ac77f205cd5"
+
+## En mode non interactif
+Modifier le fichier job.sh avec le bon N et les bons codes de la clé "Projet" et le nombre de threads
+Puis faire: chmod +x job.sh
+Et enfin faire: oarsub -l nodes=20,walltime=00:45:00 ./job.sh
+
+Suivre tous ses jobs avec: oarstat -u apanguel
