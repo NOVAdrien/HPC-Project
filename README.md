@@ -1,189 +1,164 @@
-# Direct Meet-in-the-Middle Attack (MPI + OpenMP)
+# Parallel Meet-in-the-Middle Attack (MPI + OpenMP)
 
-## Overview
+This project implements a high-performance parallel Meet-in-the-Middle (MITM) attack using a hybrid *MPI + OpenMP* approach on the Grid’5000 platform.
 
-This project implements a **parallel Meet-in-the-Middle (MITM) attack** for solving the following problem:
-
-Given two functions
-**f, g : {0,1}^n → {0,1}^n**
-and a predicate  
-**π : {0,1}^n × {0,1}^n → {0,1}**,  
-
-find a *golden collision* **(x, y)** such that:
-
-**f(x) = g(y)** and **π(x, y) = 1**.
-
-A naive brute-force approach requires **2^(2n)** operations.  
-The Meet-in-the-Middle attack reduces this complexity to approximately  
-**3 · 2^n operations**, at the cost of **2ⁿ memory**, assuming that f and g
-behave like random functions.
-
-The objective of this project is to **push the value of n as high as possible**,
-prioritizing scalability over raw execution time, using **MPI (distributed
-memory)** and **OpenMP (shared memory)** parallelism.
+Two execution modes are provided:
+1. *Interactive mode*, using a Makefile.
+2. *Non-interactive (batch) mode*, using a job.sh script.
 
 ---
 
-## Algorithm
+## Requirements
 
-The classical Meet-in-the-Middle algorithm proceeds as follows:
-
-1. Initialize a dictionary **D**
-2. For each **x ∈ {0,1}^n**, store the pair **f(x) -> x** in **D**
-3. For each **y ∈ {0,1}^n**:
-   - Retrieve all **x** such that **f(x) = g(y)**
-   - For each candidate **(x, y)**, test the predicate **π(x, y)**
-4. Return **(x, y)** when **π(x, y) = 1**
-
-This approach replaces a quadratic search with two linear passes over the
-search space.
-
----
-
-## Parallelization Strategy
-
-### MPI (Distributed Memory)
-
-- The search space **{0,1}^n** is **partitioned across MPI ranks**
-- The dictionary is **sharded** using a modulo-based strategy:
-
-```
-
-destination_rank = z mod p
-
-````
-
-- Each MPI process stores only its local shard of the dictionary
-- Dictionary construction and probing rely on **MPI_Alltoallv**
-- Final results are gathered on rank 0 using **MPI_Gatherv**
-
-This avoids a centralized dictionary and allows the program to scale across
-multiple compute nodes.
-
----
-
-### OpenMP (Shared Memory)
-
-- The probing phase is parallelized using **OpenMP**
-- Each MPI process uses multiple threads to:
-- Probe the local dictionary
-- Validate candidate key pairs
-- Critical sections are limited to result reservation only
-
----
-
-### Block Processing
-
-To control memory usage:
-
-- The search space is processed in **fixed-size chunks**
-- Dictionary construction and probing are performed block by block
-- This ensures bounded memory usage even for large values of **n**
-
----
-
-## Build Instructions
-
-### Requirements
-
-- MPI implementation (`mpicc`, `mpirun`)
+- Grid’5000 environment
+- mpicc (MPI compiler)
 - OpenMP support
-- C compiler compatible with `-O3 -Wall`
+- OAR job scheduler
 
-### Compilation
+---
 
-```bash
+## 1. Interactive Mode (recommended for testing)
+
+This mode allows you to manually reserve resources and launch experiments interactively.
+
+### 1.1 Reserve resources
+
+Reserve the number of nodes you want using OAR:
+
+bash
+oarsub -I -l nodes=<NB_NODES>,walltime=HH:MM:SS
+
+
+Example:
+bash
+oarsub -I -l nodes=50,walltime=01:00:00
+
+
+Once the job starts, you will be connected to a frontend node with access to the allocated compute nodes via $OAR_NODEFILE.
+
+---
+
+### 1.2 Compile the program
+
+Inside the project directory:
+
+bash
 make
-````
 
-This produces the executable:
 
-```bash
+This compiles the MPI + OpenMP binary:
+
 mitm_mpi_2_block
-```
 
-The code compiles **without warnings** using `-Wall`.
 
 ---
 
-## Execution
+### 1.3 Run the program
 
-### Run inside an OAR allocation
+Use the Makefile target run and pass runtime parameters via ARGS.
 
-```bash
+bash
+make run ARGS="--n <N> --C0 <KEY0> --C1 <KEY1>"
+
+
+#### Parameters
+- --n : problem size (e.g. 30, 36, 38)
+- --C0 : first hexadecimal key
+- --C1 : second hexadecimal key
+
+Example:
+bash
 make run ARGS="--n 30 --C0 f5ab93c4313512dd --C1 33876ac77f205cd5"
-```
 
-### Parameters
 
-* `--n N` : block size (search space size is **2^n**)
-* `--C0`  : first ciphertext (hexadecimal)
-* `--C1`  : second ciphertext (hexadecimal)
+#### MPI configuration (interactive mode)
+The following parameters can be overridden if needed:
+- NP : total number of MPI ranks (default: 18)
+- MAP : MPI rank placement (default: ppr:9:node)
 
-All arguments are mandatory.
+Example:
+bash
+make run NP=100 MAP=ppr:2:node ARGS="--n 36 --C0 ... --C1 ..."
 
-### MPI Configuration (Makefile)
-
-```makefile
-NP  ?= 18
-MAP ?= ppr:9:node
-```
-
-These values can be overridden at runtime if needed.
 
 ---
 
-## Output
+## 2. Non-Interactive Mode (Batch execution)
 
-* Each MPI rank reports its execution time
-* The root process gathers and prints:
+This mode is intended for long experiments and automated runs.
 
-  * The total number of golden collisions found
-  * The corresponding key pairs **(K_1, K_2)**
-* All reported solutions are validated using:
+### 2.1 Edit job.sh
 
-  * **f(K_1) = g(K_2)**
-  * the predicate **pi(K_1, K_2)**
+The job.sh script controls all execution parameters.
+
+Key variables to configure:
+
+bash
+N=38
+C0="a9bf4a972ee54312"
+C1="1831ee7f563077ed"
+
+PPR=1
+export OMP_NUM_THREADS=18
+
+
+#### Meaning of parameters
+- N : size of the MITM instance
+- C0, C1 : cryptographic keys
+- PPR : number of MPI ranks per node
+- OMP_NUM_THREADS : number of OpenMP threads per rank
+
+The total number of MPI ranks is computed automatically as:
+
+NP = number_of_nodes × PPR
+
 
 ---
 
-## Performance Considerations
+### 2.2 Submit the job
 
-* **Main bottleneck**: memory access and dictionary probing
-* **MPI communication cost** increases with the number of processes
-* **OpenMP scaling** is limited by dictionary contention
-* Large values of **n** require:
+Make the script executable (once):
 
-  * careful tuning of chunk size
-  * balanced MPI/OpenMP configuration to avoid oversubscription
+bash
+chmod +x job.sh
 
-Values of **n ≥ 40** are challenging and require multiple compute nodes.
+
+Submit the job:
+
+bash
+oarsub -l nodes=<NB_NODES>,walltime=HH:MM:SS ./job.sh
+
+
+Example:
+bash
+oarsub -l nodes=50,walltime=01:30:00 ./job.sh
+
 
 ---
 
-## Project Files
+## 3. Cleaning the build
 
-* `mitm_mpi_2_block.c` — main MPI + OpenMP implementation
-* `communication.h` — MPI sharded exchange routines
-* `utilities.h` — dynamic array utilities
-* `Makefile` — build and execution rules
-* `README.md` — project documentation
+To remove the binary and object files:
+
+bash
+make clean
+
 
 ---
 
 ## Notes
 
-* Designed for execution on Grid’5000 / OAR clusters
-* Large computations should be run at night or on weekends
-* The sharded dictionary approach avoids global memory bottlenecks
-* The implementation strictly follows MPI initialization/finalization rules
+- The application is *memory- and communication-bound*.
+- Increasing the number of MPI ranks reduces memory usage per rank but increases communication costs.
+- Increasing OpenMP threads beyond a certain point may degrade performance due to memory bandwidth contention.
+
+Choosing the right balance between:
+- MPI ranks per node (PPR)
+- OpenMP threads per rank (OMP_NUM_THREADS) is essential for optimal performance.
 
 ---
 
 ## Authors
 
-* Adrien PANGUEL
-* Karim HECHEIME
-
-Course: Parallel Programming and Cryptography
-Submission deadline: **January 5th, 23:59**
+- Adrien Pangueil
+- Karim Hecheime
