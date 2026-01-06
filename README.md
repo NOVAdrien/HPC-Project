@@ -25,12 +25,10 @@ This mode allows you to manually reserve resources and launch experiments intera
 
 Reserve the number of nodes you want using OAR:
 
-bash
 oarsub -I -l nodes=<NB_NODES>,walltime=HH:MM:SS
 
 
 Example:
-bash
 oarsub -I -l nodes=50,walltime=01:00:00
 
 
@@ -42,7 +40,6 @@ Once the job starts, you will be connected to a frontend node with access to the
 
 Inside the project directory:
 
-bash
 make
 
 
@@ -57,7 +54,6 @@ mitm_mpi_2_block
 
 Use the Makefile target run and pass runtime parameters via ARGS.
 
-bash
 make run ARGS="--n <N> --C0 <KEY0> --C1 <KEY1>"
 
 
@@ -67,7 +63,6 @@ make run ARGS="--n <N> --C0 <KEY0> --C1 <KEY1>"
 - --C1 : second hexadecimal key
 
 Example:
-bash
 make run ARGS="--n 30 --C0 f5ab93c4313512dd --C1 33876ac77f205cd5"
 
 
@@ -77,7 +72,6 @@ The following parameters can be overridden if needed:
 - MAP : MPI rank placement (default: ppr:9:node)
 
 Example:
-bash
 make run NP=100 MAP=ppr:2:node ARGS="--n 36 --C0 ... --C1 ..."
 
 
@@ -93,7 +87,6 @@ The job.sh script controls all execution parameters.
 
 Key variables to configure:
 
-bash
 N=38
 C0="a9bf4a972ee54312"
 C1="1831ee7f563077ed"
@@ -119,18 +112,15 @@ NP = number_of_nodes × PPR
 
 Make the script executable (once):
 
-bash
 chmod +x job.sh
 
 
 Submit the job:
 
-bash
 oarsub -l nodes=<NB_NODES>,walltime=HH:MM:SS ./job.sh
 
 
 Example:
-bash
 oarsub -l nodes=50,walltime=01:30:00 ./job.sh
 
 
@@ -140,7 +130,6 @@ oarsub -l nodes=50,walltime=01:30:00 ./job.sh
 
 To remove the binary and object files:
 
-bash
 make clean
 
 
