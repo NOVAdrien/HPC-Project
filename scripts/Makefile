@@ -29,6 +29,14 @@ RUN        = mpirun -machinefile $$OAR_NODEFILE -np $(NP) --map-by $(MAP)
 all: $(TARGET)
 
 $(TARGET): $(SRC) $(HEADERS)
-        $(MPICC) $(CFLAGS) $(SRC) -o $@ $(LDFLAGS)
+	$(MPICC) $(CFLAGS) $(SRC) -o $@ $(LDFLAGS)
 
 run: $(TARGET)
+	$(RUN) ./$(TARGET) $(ARGS)
+
+clean:
+	rm -f $(TARGET)
+
+re: clean all
+
+.PHONY: all run clean re
