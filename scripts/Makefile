@@ -1,35 +1,34 @@
-# Paramètres
-CC = gcc
-CFLAGS = -std=gnu11 -O3 -march=native -Wall -Wextra -pipe
+# ======================
+# Compiler and options
+# ======================
 
-SRC_DIR = src
-BUILD_DIR = builds
+MPICC      = mpicc
+CFLAGS     = -O3 -Wall -fopenmp
+LDFLAGS    = -fopenmp
 
-# Sources et objets
-SRC = $(SRC_DIR)/mitm.c
-OBJ = $(BUILD_DIR)/mitm.o
+# ======================
+# Program
+# ======================
 
-# Nom du fichier
-TARGET = mitm
+TARGET     = mitm_mpi_2_block
+SRC        = mitm_mpi_2_block.c
+HEADERS    = communication.h utilities.h
 
-.PHONY: all clean run
+# ======================
+# MPI execution (optionnal)
+# ======================
 
-# Compilation complète
+NP         ?= 18
+MAP        ?= ppr:9:node
+RUN        = mpirun -machinefile $$OAR_NODEFILE -np $(NP) --map-by $(MAP)
+
+# ======================
+# Rules
+# ======================
+
 all: $(TARGET)
 
-# Création de l'exécutable
-$(TARGET): $(OBJ)
-	$(CC) $(CFLAGS) -o $@ $^
+$(TARGET): $(SRC) $(HEADERS)
+        $(MPICC) $(CFLAGS) $(SRC) -o $@ $(LDFLAGS)
 
-# Compilation d'un .c vers un .o dans builds/
-$(BUILD_DIR)/%.o: $(SRC_DIR)/%.c
-	@mkdir -p $(BUILD_DIR)
-	$(CC) $(CFLAGS) -c -o $@ $<
-
-# Nettoyage
-clean:
-	rm -f $(BUILD_DIR)/*.o $(TARGET)
-
-# Exécution selon les paramètres sur le site : https://ppar.tme-crypto.fr/<username>/<n>
 run: $(TARGET)
-	./$(TARGET) --n 20 --C0 ab608b105290528d --C1 03abc7b389f440ed
