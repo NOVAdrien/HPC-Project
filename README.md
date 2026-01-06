@@ -82,24 +82,6 @@ To control memory usage:
 
 ---
 
-## Cryptographic Instance
-
-The provided instance corresponds to a **Double-SPECK64-128 construction**:
-
-- **f(x) = E(x, P_0)**
-- **g(y) = D(y, C_0)**
-- **π(x, y) = [E(y, E(x, P_1)) = C_1]**
-
-Where:
-- **SPECK64-128** is used as the block cipher
-- Two plaintext–ciphertext pairs are required to validate a solution
-
-No cryptographic background is required to understand or use the code; the
-problem can be viewed purely as a **distributed data-structure and search
-problem**.
-
----
-
 ## Build Instructions
 
 ### Requirements
