@@ -149,5 +149,5 @@ Choosing the right balance between:
 
 ## Authors
 
-- Adrien Pangueil
+- Adrien Panguel
 - Karim Hecheime
